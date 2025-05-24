@@ -4,14 +4,13 @@ A command-line banking simulator built in C++ using object-oriented programming 
 
 ## Features
 
-- Account creation with username, password, and initial deposit
-- SHA-256 password hashing for secure user authentication
-- Secure login for both employees and customers
-- Deposit, withdrawal, and transfer functionality
-- Employee view of all customer accounts
-- Persistent storage of account and user data via JSON
-- Clean, modular code with proper encapsulation and inheritance
-- Full vault encryption using a custom XOR + salt cipher: all account data, usernames, and account hashes are encrypted at rest
+- Customer-managed account creation
+- Per-user directories and encrypted profile/account files
+- SHA-256 password hashing for all logins
+- Employee access to account summaries and individual account details
+- Customer access to deposit, withdraw, transfer, and balance check
+- JSON-based persistent storage in structured vault directories
+- Secure and modular architecture using inheritance and encapsulation
 
 ## Structure
 
@@ -25,16 +24,15 @@ A command-line banking simulator built in C++ using object-oriented programming 
 
 ## File Organization
 
-- `main.cpp`: Contains all class definitions and the program's main logic
-- `vaults/bank.json`: Stores fully encrypted account data (owner name, number, balance)
-- `vaults/customers.json`: Stores hashed customer login data
-- `vaults/employees.json`: Stores hashed employee login data
+- `main.cpp`: All class definitions and the main logic
+- `vaults/customers/[username]/`: Each customer's encrypted profile and account data
+- `vaults/employees/[username]/`: Each employee's encrypted profile
 
 ## Usage
 
 1. Compile:
    ```
-   g++ main.cpp encryption.cpp -std=c++17 -o bankSim
+   g++ main.cpp -std=c++17 -o bankSim
    ```
 
 2. Run:
@@ -43,16 +41,15 @@ A command-line banking simulator built in C++ using object-oriented programming 
    ```
 
 3. Follow on-screen prompts to:
-   - Create a new account (with hashed credentials and visible account data)
-   - Log in as a customer or employee (verified via hashed credentials)
-   - Perform account actions (deposit, withdraw, transfer)
-   - View accounts (employee only)
+   - Log in or register as a customer and manage your account
+   - Register or log in as an employee to view account summaries and balances
 
 ## Future Enhancements
 
 - Admin role with extended permissions
 - Transaction history logs
 - UI improvements (e.g. color formatting)
+- Automatic employee-customer account linking and audit trails
 
 ## Author
 
