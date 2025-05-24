@@ -868,7 +868,7 @@ int main() {
                     cout << "Invalid input. Please try again." << endl;
                     continue;
                 }
-                cout << endl;;
+                cout << endl;
 
                 // Handle invalid employee action menu choice
                 if (employeeChoice != 's' && employeeChoice != 'S' &&
