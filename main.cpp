@@ -371,9 +371,9 @@ public:
         nlohmann::json j;
         for (const auto& acc : account) {
             j.push_back({
-                {"name", acc.getOwnerName()},
-                {"number", acc.getAccountNumber()},
-                {"balance", acc.getBalance()}
+                {"name", sha256(acc.getOwnerName())},
+                {"number", sha256(to_string(acc.getAccountNumber()))},
+                {"balance", sha256(to_string(acc.getBalance()))}
             });
         }
         ofstream file(filename);
@@ -435,9 +435,9 @@ public:
         nlohmann::json cj;
         for (const auto& c : customers) {
             cj.push_back({
-                {"username", c.getUsername()},
+                {"username", sha256(c.getUsername())},
                 {"password", c.getPassword()},
-                {"accountNumber", c.getAccountNumber()}
+                {"accountNumber", sha256(to_string(c.getAccountNumber()))}
             });
         }
         ofstream cOut(customerFile);
@@ -447,7 +447,7 @@ public:
         nlohmann::json ej;
         for (const auto& e : employees) {
             ej.push_back({
-                {"username", e.getUsername()},
+                {"username", sha256(e.getUsername())},
                 {"password", e.getPassword()}
             });
         }
