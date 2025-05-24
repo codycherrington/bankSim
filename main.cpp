@@ -7,6 +7,8 @@
 #include <filesystem>
 #include <sstream>
 #include <iomanip>
+#include "encryption.hpp"
+std::string vaultPassword = "devmode";
 
 #include "nlohmann/json.hpp"
 
@@ -379,9 +381,9 @@ public:
         nlohmann::json j;
         for (const auto& acc : account) {
             j.push_back({
-                {"name", acc.getOwnerName()},
-                {"number", acc.getAccountNumber()},
-                {"balance", acc.getBalance()}
+                {"name", encrypt(acc.getOwnerName(), vaultPassword)},
+                {"number", encrypt(to_string(acc.getAccountNumber()), vaultPassword)},
+                {"balance", encrypt(to_string(acc.getBalance()), vaultPassword)}
             });
         }
         ofstream file(filename);
@@ -397,9 +399,9 @@ public:
         file >> j;
         file.close();
         for (const auto& item : j) {
-            string name = item.at("name");
-            int number = item.at("number");
-            double balance = item.at("balance");
+            string name = decrypt(item.at("name"), vaultPassword);
+            int number = stoi(decrypt(item.at("number"), vaultPassword));
+            double balance = stod(decrypt(item.at("balance"), vaultPassword));
             Account acc(name, number, balance);
             account.push_back(acc);
             if (number >= nextAccountNumber) {
@@ -417,9 +419,9 @@ public:
             cFile >> cj;
             cFile.close();
             for (const auto& item : cj) {
-                string username = item.at("username");
+                string username = decrypt(item.at("username"), vaultPassword);
                 string password = item.at("password");
-                string accNumHash = item.at("accountNumber");
+                string accNumHash = decrypt(item.at("accountNumber"), vaultPassword);
                 customers.emplace_back(username, password, accNumHash, true);
 
                 // Create a placeholder account entry for login hash matching
@@ -448,7 +450,7 @@ public:
             eFile >> ej;
             eFile.close();
             for (const auto& item : ej) {
-                string username = item.at("username");
+                string username = decrypt(item.at("username"), vaultPassword);
                 string password = item.at("password");
                 employees.emplace_back(username, password, true);
             }
@@ -460,9 +462,9 @@ public:
         nlohmann::json cj;
         for (const auto& c : customers) {
             cj.push_back({
-                {"username", c.getUsername()},
+                {"username", encrypt(c.getUsername(), vaultPassword)},
                 {"password", c.getPassword()},
-                {"accountNumber", c.getAccountHash()}
+                {"accountNumber", encrypt(c.getAccountHash(), vaultPassword)}
             });
         }
         ofstream cOut(customerFile);
@@ -472,7 +474,7 @@ public:
         nlohmann::json ej;
         for (const auto& e : employees) {
             ej.push_back({
-                {"username", e.getUsername()},
+                {"username", encrypt(e.getUsername(), vaultPassword)},
                 {"password", e.getPassword()}
             });
         }
@@ -491,6 +493,10 @@ int main() {
     Bank account;
     account.loadFromFile("vaults/bank.json");
     account.loadUsersFromFile("vaults/customers.json", "vaults/employees.json");
+
+    // std::cout << "Enter vault encryption password: ";
+    // std::cin >> vaultPassword;
+    // std::cout << std::endl;
 
     while (true) {
         // Main menu: Prompt for employee or customer or exit
