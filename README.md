@@ -11,7 +11,7 @@ A command-line banking simulator built in C++ using object-oriented programming 
 - Employee view of all customer accounts
 - Persistent storage of account and user data via JSON
 - Clean, modular code with proper encapsulation and inheritance
-- Full-field encryption using SHA-256: all usernames, passwords, account numbers, balances, and owner names are hashed for secure storage
+- Password and account number hashing using SHA-256 for secure storage
 
 ## Structure
 
@@ -26,7 +26,7 @@ A command-line banking simulator built in C++ using object-oriented programming 
 ## File Organization
 
 - `main.cpp`: Contains all class definitions and the program's main logic
-- `vaults/bank.json`: Stores SHA-256 hashed account data
+- `vaults/bank.json`: Stores account data (owner name, number, balance) in plaintext
 - `vaults/customers.json`: Stores hashed customer login data
 - `vaults/employees.json`: Stores hashed employee login data
 
@@ -43,10 +43,10 @@ A command-line banking simulator built in C++ using object-oriented programming 
    ```
 
 3. Follow on-screen prompts to:
-   - Create a new account (with encrypted fields)
+   - Create a new account (with hashed credentials and visible account data)
    - Log in as a customer or employee (verified via hashed credentials)
    - Perform account actions (deposit, withdraw, transfer)
-   - View accounts (employee only; encrypted data until login)
+   - View accounts (employee only)
 
 ## Future Enhancements
 

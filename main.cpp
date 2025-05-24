@@ -264,6 +264,11 @@ public:
     // Constructs a User with a username and password (hashes the password).
     User(string uname, string pword) : username(uname), password(sha256(pword)) {}
 
+    // Constructs a User with a username and a password, with option to specify if password is already hashed.
+    User(string uname, string pword, bool isHashed) : username(uname) {
+        password = isHashed ? pword : sha256(pword);
+    }
+
     // Returns the username.
     string getUsername() const {
         return username;
@@ -286,25 +291,23 @@ public:
 // The Customer class represents a bank customer and associates them with an account.
 class Customer : public User {
 private:
-    int accountNumber;
+    string accountHash;
 
 public:
-    // Constructs a Customer with username, password, and account number.
-    Customer(string uname, string pword, int accNum)
-        : User(uname, pword), accountNumber(accNum) {}
+    // Constructs a Customer with username, password, and account hash.
+    Customer(string uname, string pword, string accHash, bool isHashed = false)
+        : User(uname, pword, isHashed), accountHash(accHash) {}
 
-    // Returns the associated account number.
-    int getAccountNumber() const { 
-        return accountNumber; 
-    }
+    // Returns the associated account hash.
+    string getAccountHash() const { return accountHash; }
 };
 
 // The Employee class represents a bank employee with access to view all accounts.
 class Employee : public User {
 public:
     // Constructs an Employee with username and password.
-    Employee(string uname, string pword)
-        : User(uname, pword) {}
+    Employee(string uname, string pword, bool isHashed = false)
+        : User(uname, pword, isHashed) {}
 
     // Allows employee to view all accounts in the bank.
     void viewAllAccounts(class Bank& bank) const;
@@ -365,15 +368,20 @@ public:
         }
     }
 
+    // Returns a const reference to all accounts.
+    const vector<Account>& getAllAccounts() const {
+        return account;
+    }
+
     // Saves account data to a file in JSON format.
     void saveToFile(const string& filename) {
         fs::create_directories("vaults");
         nlohmann::json j;
         for (const auto& acc : account) {
             j.push_back({
-                {"name", sha256(acc.getOwnerName())},
-                {"number", sha256(to_string(acc.getAccountNumber()))},
-                {"balance", sha256(to_string(acc.getBalance()))}
+                {"name", acc.getOwnerName()},
+                {"number", acc.getAccountNumber()},
+                {"balance", acc.getBalance()}
             });
         }
         ofstream file(filename);
@@ -411,8 +419,25 @@ public:
             for (const auto& item : cj) {
                 string username = item.at("username");
                 string password = item.at("password");
-                int accNum = item.at("accountNumber");
-                customers.emplace_back(username, password, accNum);
+                string accNumHash = item.at("accountNumber");
+                customers.emplace_back(username, password, accNumHash, true);
+
+                // Create a placeholder account entry for login hash matching
+                int placeholderNumber = nextAccountNumber++;
+                Account placeholder("Encrypted", placeholderNumber, 0.0);
+                account.push_back(placeholder);
+
+                // Overwrite placeholder account hash to match customer hash
+                if (sha256(to_string(placeholderNumber)) != accNumHash) {
+                    account.pop_back(); // remove mismatch
+                    for (int i = 100000; i < 999999; ++i) {
+                        if (sha256(to_string(i)) == accNumHash) {
+                            Account match("Encrypted", i, 0.0);
+                            account.push_back(match);
+                            break;
+                        }
+                    }
+                }
             }
         }
 
@@ -425,7 +450,7 @@ public:
             for (const auto& item : ej) {
                 string username = item.at("username");
                 string password = item.at("password");
-                employees.emplace_back(username, password);
+                employees.emplace_back(username, password, true);
             }
         }
     }
@@ -435,9 +460,9 @@ public:
         nlohmann::json cj;
         for (const auto& c : customers) {
             cj.push_back({
-                {"username", sha256(c.getUsername())},
+                {"username", c.getUsername()},
                 {"password", c.getPassword()},
-                {"accountNumber", sha256(to_string(c.getAccountNumber()))}
+                {"accountNumber", c.getAccountHash()}
             });
         }
         ofstream cOut(customerFile);
@@ -447,7 +472,7 @@ public:
         nlohmann::json ej;
         for (const auto& e : employees) {
             ej.push_back({
-                {"username", sha256(e.getUsername())},
+                {"username", e.getUsername()},
                 {"password", e.getPassword()}
             });
         }
@@ -525,8 +550,9 @@ int main() {
                 cout << endl << "New customer account created successfully!" << endl << endl;
 
                 int accountNum = account.addAccount(newCustomerName, newCustomerDeposit);
-                // Add the new customer to the customers vector
-                Customer newCustomer(newUsername, newPassword, accountNum);
+                // Hash the account number and add the new customer
+                string accountHash = sha256(to_string(accountNum));
+                Customer newCustomer(newUsername, newPassword, accountHash);
                 account.addCustomer(newCustomer);
                 cout << endl << "Account number: " << accountNum << endl;
                 cout << "Account Name: " << newCustomerName << endl;
@@ -548,7 +574,13 @@ int main() {
                 // Authenticate customer
                 for (const auto& cust : account.getCustomers()) {
                     if (cust.getUsername() == username && cust.checkPassword(password)) {
-                        returningAccountNumber = cust.getAccountNumber();
+                        // Find the account number by matching the hash
+                        for (const auto& acc : account.getAllAccounts()) {
+                            if (sha256(to_string(acc.getAccountNumber())) == cust.getAccountHash()) {
+                                returningAccountNumber = acc.getAccountNumber();
+                                break;
+                            }
+                        }
                         loginSuccess = true;
                         break;
                     }
