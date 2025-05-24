@@ -547,13 +547,21 @@ int main() {
         cout << "(x) to exit" << endl;
         cout << "---> ";
         cin >> employeeOrCustomerChoice;
-        cout << endl;
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << endl <<"Invalid input. Please try again." << endl;
+            cout << endl;
+            continue;
+        }
 
         // Handle invalid main menu choice
         if (employeeOrCustomerChoice != 'e' && employeeOrCustomerChoice != 'E'
             && employeeOrCustomerChoice != 'c' && employeeOrCustomerChoice != 'C'
             && employeeOrCustomerChoice != 'x' && employeeOrCustomerChoice != 'X') {
+            cout << endl;
             cout << "Invalid Choice." << endl;
+            cout << endl;
         }
         // Exit program
         else if (employeeOrCustomerChoice == 'x' || employeeOrCustomerChoice == 'X') {
@@ -564,16 +572,25 @@ int main() {
         else if (employeeOrCustomerChoice == 'c' || employeeOrCustomerChoice == 'C') {
             // Prompt for new or returning customer
             char newOrReturningChoice = ' ';
-            cout << "Are you a returning customer or a new customer?" << endl;
+            cout << endl << "Are you a returning customer or a new customer?" << endl;
             cout << "(n) New" << endl;
             cout << "(r) Returning" << endl;
             cout << "--->";
             cin >> newOrReturningChoice;
+            if (cin.fail()) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << endl;
+                cout << "Invalid input. Please try again." << endl;
+                cout << endl;
+                continue;
+            }
 
             // Handle invalid customer menu choice
             if (newOrReturningChoice != 'n' && newOrReturningChoice != 'N' &&
                 newOrReturningChoice != 'r' && newOrReturningChoice != 'R') {
-                cout << "Invalid Choice." << endl;
+                cout << endl;
+                cout << "Invalid Choice." << endl << endl;
             }
             // New customer registration
             else if (newOrReturningChoice == 'n' || newOrReturningChoice == 'N') {
@@ -591,6 +608,14 @@ int main() {
                 double newCustomerDeposit = 0;
                 cout << "What is your initial deposit?: ";
                 cin >> newCustomerDeposit;
+                if (cin.fail()) {
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    cout << endl;
+                    cout << "Invalid input. Please try again." << endl;
+                    cout << endl;
+                    continue;
+                }
 
                 cout << endl << "New customer account created successfully!" << endl << endl;
 
@@ -620,7 +645,7 @@ int main() {
             // Returning customer login and actions
             else if (newOrReturningChoice == 'r' || newOrReturningChoice == 'R') {
                 string username, password;
-                cout << "Enter username: ";
+                cout << endl << "Enter username: ";
                 cin >> username;
                 cout << "Enter password: ";
                 cin >> password;
@@ -662,6 +687,14 @@ int main() {
                         cout << "(r) Return to main menu" << endl;
                         cout << "--->";
                         cin >> customerMenuChoice;
+                        if (cin.fail()) {
+                            cin.clear();
+                            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                            cout << endl;
+                            cout << "Invalid input. Please try again." << endl;
+                            cout << endl;
+                            continue;
+                        }
                         cout << endl;
 
                         // Handle invalid customer action menu choice
@@ -682,6 +715,14 @@ int main() {
                             int dep = 0;
                             cout << "How much would you like to deposit?: ";
                             cin >> dep;
+                            if (cin.fail()) {
+                                cin.clear();
+                                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                                cout << endl;
+                                cout << "Invalid input. Please try again." << endl;
+                                cout << endl;
+                                continue;
+                            }
                             cout << endl;
                             found->deposit(dep);
                             found->display();
@@ -692,9 +733,16 @@ int main() {
                             int wd = 0;
                             cout << "How much would you like to withdraw?: ";
                             cin >> wd;
+                            if (cin.fail()) {
+                                cin.clear();
+                                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                                cout << endl;
+                                cout << "Invalid input. Please try again." << endl;
+                                cout << endl;
+                                continue;
+                            }
                             cout << endl;
                             found->withdraw(wd);
-                            cout << endl;
                             found->display();
                             continue;
                         }
@@ -705,16 +753,30 @@ int main() {
 
                             cout << "How much would you like to transfer? :$";
                             cin >> transferAmount;
+                            if (cin.fail()) {
+                                cin.clear();
+                                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                                cout << endl;
+                                cout << "Invalid input. Please try again." << endl;
+                                cout << endl;
+                                continue;
+                            }
 
                             cout << "To which account number? :";
                             cin >> recipientNumber;
+                            if (cin.fail()) {
+                                cin.clear();
+                                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                                cout << "Invalid input. Please try again." << endl;
+                                continue;
+                            }
 
                             Account* recipientAccount = account.findAccount(recipientNumber);
 
                             if (recipientAccount != nullptr) {
+                                cout << endl;
                                 found->transferTo(*recipientAccount, transferAmount);
                                 found->display();
-                                recipientAccount->display();
                             }
                             else {
                                 cout << "Transfer failed: recipient account not found." << endl;
@@ -733,11 +795,19 @@ int main() {
         else if (employeeOrCustomerChoice == 'e' || employeeOrCustomerChoice == 'E') {
             // Prompt for new or returning employee
             char newOrExisting = ' ';
-            cout << "Are you a new or existing employee?" << endl;
+            cout << endl << "Are you a new or existing employee?" << endl;
             cout << "(n) New" << endl;
             cout << "(r) Returning" << endl;
             cout << "---> ";
             cin >> newOrExisting;
+            if (cin.fail()) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << endl;
+                cout << "Invalid input. Please try again." << endl;
+                cout << endl;
+                continue;
+            }
 
             // New employee registration
             if (newOrExisting == 'n' || newOrExisting == 'N') {
@@ -767,7 +837,7 @@ int main() {
 
             // Returning employee login and actions
             string username, password;
-            cout << "Enter username: ";
+            cout << endl << "Enter username: ";
             cin >> username;
             cout << "Enter password: ";
             cin >> password;
@@ -783,7 +853,9 @@ int main() {
             }
 
             if (!loginSuccess) {
-                cout << endl << "INVALID LOGIN" << endl << endl;
+                cout << endl;
+                cout << "INVALID LOGIN" << endl;
+                cout << endl;
                 continue;
             }
 
@@ -795,12 +867,20 @@ int main() {
                 cout << "(r) Return to main menu" << endl;
                 cout << "--->";
                 cin >> employeeChoice;
-                cout << endl;
+                if (cin.fail()) {
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    cout << "Invalid input. Please try again." << endl;
+                    continue;
+                }
+                cout << endl;;
 
                 // Handle invalid employee action menu choice
                 if (employeeChoice != 's' && employeeChoice != 'S' &&
                     employeeChoice != 'r' && employeeChoice != 'R') {
-                    cout << endl << "INVALID CHOICE" << endl;
+                    cout << endl;
+                    cout << "INVALID CHOICE" << endl;
+                    cout << endl;
                     continue;
                 }
                 // Show all accounts
@@ -811,7 +891,7 @@ int main() {
                 }
                 // Return to main menu
                 if (employeeChoice == 'r' || employeeChoice == 'R') {
-                    cout << endl << "Returning to main menu...." << endl;
+                    cout << "Returning to main menu...." << endl << endl;
                     break;
                 }
             }
