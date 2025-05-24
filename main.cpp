@@ -1,8 +1,8 @@
 
 /**************************************************************
  *                       bankSim.cpp
- *  g++ main.cpp -std=c++17 -o bankSim
- *  ./bankSim
+g++ main.cpp -std=c++17 -o bankSim
+./bankSim
  **************************************************************/
 
 // ==========================
@@ -15,16 +15,11 @@
 #include <sstream>
 #include <iomanip>
 #include <cstring>
-#include "encryption.hpp"
 #include "nlohmann/json.hpp"
 
 using namespace std;
 namespace fs = std::filesystem;
 
-// ==========================
-//      Encryption Setup
-// ==========================
-std::string vaultPassword = "devmode";
 
 // ==========================
 //   Lightweight SHA-256 Implementation (no external dependencies)
@@ -372,105 +367,155 @@ public:
     const vector<Account>& getAllAccounts() const {
         return account;
     }
-    // Saves account data to a file in JSON format.
+    // Saves account data to a file in JSON format (no encryption).
     void saveToFile(const string& filename) {
-        fs::create_directories("vaults");
-        nlohmann::json j;
-        for (const auto& acc : account) {
-            j.push_back({
-                {"name", encrypt(acc.getOwnerName(), vaultPassword)},
-                {"number", encrypt(to_string(acc.getAccountNumber()), vaultPassword)},
-                {"balance", encrypt(to_string(acc.getBalance()), vaultPassword)}
-            });
-        }
-        ofstream file(filename);
-        file << j.dump(4);
-        file.close();
+        // Removed: no longer saving to bank.json
     }
-    // Loads account data from a file in JSON format.
+    // Loads account data from a file in JSON format (no encryption).
     void loadFromFile(const string& filename) {
-        ifstream file(filename);
-        if (!file.is_open()) return;
-        nlohmann::json j;
-        file >> j;
-        file.close();
-        for (const auto& item : j) {
-            string name = decrypt(item.at("name"), vaultPassword);
-            int number = stoi(decrypt(item.at("number"), vaultPassword));
-            double balance = stod(decrypt(item.at("balance"), vaultPassword));
-            Account acc(name, number, balance);
-            account.push_back(acc);
-            if (number >= nextAccountNumber) {
-                nextAccountNumber = number + 1;
-            }
-        }
+        // Removed: no longer loading from bank.json
     }
-    // Loads customers and employees from their respective files.
+    // Loads customers and employees from their respective directories (no encryption).
     void loadUsersFromFile(const string& customerFile, const string& employeeFile) {
-        // Load customers
-        ifstream cFile(customerFile);
-        if (cFile.is_open()) {
-            nlohmann::json cj;
-            cFile >> cj;
-            cFile.close();
-            for (const auto& item : cj) {
-                string username = decrypt(item.at("username"), vaultPassword);
-                string password = item.at("password");
-                string accNumHash = decrypt(item.at("accountNumber"), vaultPassword);
-                customers.emplace_back(username, password, accNumHash, true);
-                // Create a placeholder account entry for login hash matching
-                int placeholderNumber = nextAccountNumber++;
-                Account placeholder("Encrypted", placeholderNumber, 0.0);
-                account.push_back(placeholder);
-                // Overwrite placeholder account hash to match customer hash
-                if (sha256(to_string(placeholderNumber)) != accNumHash) {
-                    account.pop_back(); // remove mismatch
-                    for (int i = 100000; i < 999999; ++i) {
-                        if (sha256(to_string(i)) == accNumHash) {
-                            Account match("Encrypted", i, 0.0);
-                            account.push_back(match);
-                            break;
+        // Load customers from vaults/customers/[username]/profile.json and account.json
+        customers.clear();
+        account.clear();
+        nextAccountNumber = 1000;
+        string customersDir = "vaults/customers";
+        if (fs::exists(customersDir) && fs::is_directory(customersDir)) {
+            for (const auto& entry : fs::directory_iterator(customersDir)) {
+                if (fs::is_directory(entry)) {
+                    string profilePath = entry.path().string() + "/profile.json";
+                    if (fs::exists(profilePath)) {
+                        ifstream pf(profilePath);
+                        if (pf.is_open()) {
+                            nlohmann::json cj;
+                            pf >> cj;
+                            pf.close();
+                            string username = cj.value("username", "");
+                            string password = cj.value("password", "");
+                            string accNumHash = cj.value("accountNumber", "");
+                            customers.emplace_back(username, password, accNumHash, true);
+                            // Load account.json for this customer
+                            string accountPath = entry.path().string() + "/account.json";
+                            if (fs::exists(accountPath)) {
+                                ifstream af(accountPath);
+                                if (af.is_open()) {
+                                    nlohmann::json aj;
+                                    af >> aj;
+                                    af.close();
+                                    string name = aj.value("name", "");
+                                    int number = aj.value("number", 0);
+                                    double balance = aj.value("balance", 0.0);
+                                    Account acc(name, number, balance);
+                                    account.push_back(acc);
+                                    if (number >= nextAccountNumber) {
+                                        nextAccountNumber = number + 1;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-        // Load employees
-        ifstream eFile(employeeFile);
-        if (eFile.is_open()) {
-            nlohmann::json ej;
-            eFile >> ej;
-            eFile.close();
-            for (const auto& item : ej) {
-                string username = decrypt(item.at("username"), vaultPassword);
-                string password = item.at("password");
-                employees.emplace_back(username, password, true);
+        // Load employees from vaults/employees/[username]/profile.json and account.json (if needed)
+        employees.clear();
+        string employeesDir = "vaults/employees";
+        if (fs::exists(employeesDir) && fs::is_directory(employeesDir)) {
+            for (const auto& entry : fs::directory_iterator(employeesDir)) {
+                if (fs::is_directory(entry)) {
+                    string profilePath = entry.path().string() + "/profile.json";
+                    if (fs::exists(profilePath)) {
+                        ifstream pf(profilePath);
+                        if (pf.is_open()) {
+                            nlohmann::json ej;
+                            pf >> ej;
+                            pf.close();
+                            string username = ej.value("username", "");
+                            string password = ej.value("password", "");
+                            employees.emplace_back(username, password, true);
+                            // Optionally, load account.json for employees if you want to store their accounts too
+                            string accountPath = entry.path().string() + "/account.json";
+                            if (fs::exists(accountPath)) {
+                                ifstream af(accountPath);
+                                if (af.is_open()) {
+                                    nlohmann::json aj;
+                                    af >> aj;
+                                    af.close();
+                                    string name = aj.value("name", "");
+                                    int number = aj.value("number", 0);
+                                    double balance = aj.value("balance", 0.0);
+                                    Account acc(name, number, balance);
+                                    account.push_back(acc);
+                                    if (number >= nextAccountNumber) {
+                                        nextAccountNumber = number + 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
-    // Saves customers and employees to their respective files.
+    // Saves customers and employees to their respective directories (no encryption).
     void saveUsersToFile(const string& customerFile, const string& employeeFile) {
-        nlohmann::json cj;
+        // Save customers and their account.json
         for (const auto& c : customers) {
-            cj.push_back({
-                {"username", encrypt(c.getUsername(), vaultPassword)},
+            string custDir = "vaults/customers/" + c.getUsername();
+            fs::create_directories(custDir);
+            nlohmann::json cj = {
+                {"username", c.getUsername()},
                 {"password", c.getPassword()},
-                {"accountNumber", encrypt(c.getAccountHash(), vaultPassword)}
-            });
+                {"accountNumber", c.getAccountHash()}
+            };
+            ofstream pf(custDir + "/profile.json");
+            pf << cj.dump(4);
+            pf.close();
+            // Save account.json for this customer
+            // Find their account by matching the hash
+            for (const auto& acc : account) {
+                if (sha256(to_string(acc.getAccountNumber())) == c.getAccountHash()) {
+                    nlohmann::json aj = {
+                        {"name", acc.getOwnerName()},
+                        {"number", acc.getAccountNumber()},
+                        {"balance", acc.getBalance()}
+                    };
+                    ofstream af(custDir + "/account.json");
+                    af << aj.dump(4);
+                    af.close();
+                    break;
+                }
+            }
         }
-        ofstream cOut(customerFile);
-        cOut << cj.dump(4);
-        cOut.close();
-        nlohmann::json ej;
+        // Save employees and their account.json (if any)
         for (const auto& e : employees) {
-            ej.push_back({
-                {"username", encrypt(e.getUsername(), vaultPassword)},
+            string empDir = "vaults/employees/" + e.getUsername();
+            fs::create_directories(empDir);
+            nlohmann::json ej = {
+                {"username", e.getUsername()},
                 {"password", e.getPassword()}
-            });
+            };
+            ofstream pf(empDir + "/profile.json");
+            pf << ej.dump(4);
+            pf.close();
+            // Save account.json if this employee has an account (optional)
+            // This block is only meaningful if you want to store employee-owned accounts
+            for (const auto& acc : account) {
+                if (acc.getOwnerName() == e.getUsername()) {
+                    nlohmann::json aj = {
+                        {"name", acc.getOwnerName()},
+                        {"number", acc.getAccountNumber()},
+                        {"balance", acc.getBalance()}
+                    };
+                    ofstream af(empDir + "/account.json");
+                    af << aj.dump(4);
+                    af.close();
+                    break;
+                }
+            }
         }
-        ofstream eOut(employeeFile);
-        eOut << ej.dump(4);
-        eOut.close();
     }
 };
 
@@ -485,7 +530,7 @@ inline void Employee::viewAllAccounts(Bank& bank) const {
 // Entry point for Cherrington Bank simulation.
 int main() {
     Bank account;
-    account.loadFromFile("vaults/bank.json");
+    // Removed: account.loadFromFile("vaults/bank.json");
     account.loadUsersFromFile("vaults/customers.json", "vaults/employees.json");
 
     // std::cout << "Enter vault encryption password: ";
@@ -554,11 +599,22 @@ int main() {
                 string accountHash = sha256(to_string(accountNum));
                 Customer newCustomer(newUsername, newPassword, accountHash);
                 account.addCustomer(newCustomer);
+                // Create directory and profile.json for new customer
+                string custDir = "vaults/customers/" + newUsername;
+                fs::create_directories(custDir);
+                nlohmann::json cj = {
+                    {"username", newUsername},
+                    {"password", sha256(newPassword)},
+                    {"accountNumber", accountHash}
+                };
+                ofstream pf(custDir + "/profile.json");
+                pf << cj.dump(4);
+                pf.close();
                 cout << endl << "Account number: " << accountNum << endl;
                 cout << "Account Name: " << newCustomerName << endl;
                 cout << "Current Balance: " << newCustomerDeposit << endl << endl;
                 cout << "Retuning to main menu...." << endl << endl;
-                account.saveToFile("vaults/bank.json");
+                // Removed: account.saveToFile("vaults/bank.json");
                 account.saveUsersToFile("vaults/customers.json", "vaults/employees.json");
             }
             // Returning customer login and actions
@@ -693,6 +749,16 @@ int main() {
 
                 Employee newEmployee(newUsername, newPassword);
                 account.addEmployee(newEmployee);
+                // Create directory and profile.json for new employee
+                string empDir = "vaults/employees/" + newUsername;
+                fs::create_directories(empDir);
+                nlohmann::json ej = {
+                    {"username", newUsername},
+                    {"password", sha256(newPassword)}
+                };
+                ofstream pf(empDir + "/profile.json");
+                pf << ej.dump(4);
+                pf.close();
                 account.saveUsersToFile("vaults/customers.json", "vaults/employees.json");
 
                 cout << endl << "New employee account created successfully!" << endl << endl;
@@ -752,7 +818,7 @@ int main() {
         }
     }
     // Save all data before exiting
-    account.saveToFile("vaults/bank.json");
+    // Removed: account.saveToFile("vaults/bank.json");
     account.saveUsersToFile("vaults/customers.json", "vaults/employees.json");
     return 0;
 }
