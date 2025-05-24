@@ -1,5 +1,3 @@
-
-
 # Cherrington BankSim
 
 A command-line banking simulator built in C++ using object-oriented programming principles. BankSim allows users to create and manage bank accounts, simulate employee and customer roles, and handle persistent data using JSON files.
@@ -7,6 +5,7 @@ A command-line banking simulator built in C++ using object-oriented programming 
 ## Features
 
 - Account creation with username, password, and initial deposit
+- SHA-256 password hashing for secure user authentication
 - Secure login for both employees and customers
 - Deposit, withdrawal, and transfer functionality
 - Employee view of all customer accounts
@@ -18,7 +17,7 @@ A command-line banking simulator built in C++ using object-oriented programming 
 ### Classes
 
 - `Account`: Handles basic account operations like deposit, withdrawal, and balance tracking
-- `User`: Abstract base class for shared user attributes like username and password
+- `User`: Abstract base class for shared user attributes like username and password; includes password hashing for security
 - `Customer`: Inherits from `User`, linked to a specific bank account
 - `Employee`: Inherits from `User`, can view all accounts
 - `Bank`: Manages all customer and employee data, account management, and file I/O
@@ -50,7 +49,6 @@ A command-line banking simulator built in C++ using object-oriented programming 
 
 ## Future Enhancements
 
-- Password hashing and encryption
 - Admin role with extended permissions
 - Transaction history logs
 - UI improvements (e.g. color formatting)
