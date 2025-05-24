@@ -530,12 +530,7 @@ inline void Employee::viewAllAccounts(Bank& bank) const {
 // Entry point for Cherrington Bank simulation.
 int main() {
     Bank account;
-    // Removed: account.loadFromFile("vaults/bank.json");
     account.loadUsersFromFile("vaults/customers.json", "vaults/employees.json");
-
-    // std::cout << "Enter vault encryption password: ";
-    // std::cin >> vaultPassword;
-    // std::cout << std::endl;
 
     while (true) {
         // Main menu: Prompt for employee or customer or exit
