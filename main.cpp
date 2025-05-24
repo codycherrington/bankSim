@@ -1,26 +1,38 @@
-/* g++ main.cpp -std=c++17 -o bankSim
-./bankSim*/
 
+/**************************************************************
+ *                       bankSim.cpp
+ *  g++ main.cpp -std=c++17 -o bankSim
+ *  ./bankSim
+ **************************************************************/
+
+// ==========================
+//        Includes
+// ==========================
 #include <iostream>
 #include <vector>
 #include <fstream>
 #include <filesystem>
 #include <sstream>
 #include <iomanip>
+#include <cstring>
 #include "encryption.hpp"
-std::string vaultPassword = "devmode";
-
 #include "nlohmann/json.hpp"
 
 using namespace std;
+namespace fs = std::filesystem;
 
-// Lightweight SHA-256 implementation (no external dependencies)
-#include <cstring>
+// ==========================
+//      Encryption Setup
+// ==========================
+std::string vaultPassword = "devmode";
 
-typedef unsigned char BYTE;             // 8-bit byte
-typedef unsigned int  WORD;             // 32-bit word
+// ==========================
+//   Lightweight SHA-256 Implementation (no external dependencies)
+// ==========================
+typedef unsigned char BYTE;   // 8-bit byte
+typedef unsigned int  WORD;   // 32-bit word
 
-const unsigned int SHA256_BLOCK_SIZE = 32;            // SHA256 outputs a 32 byte digest
+const unsigned int SHA256_BLOCK_SIZE = 32; // SHA256 outputs a 32 byte digest
 
 typedef struct {
     BYTE data[64];
@@ -29,15 +41,15 @@ typedef struct {
     WORD state[8];
 } SHA256_CTX;
 
-#define ROTLEFT(a,b) ((a << b) | (a >> (32-b)))
+#define ROTLEFT(a,b)  ((a << b) | (a >> (32-b)))
 #define ROTRIGHT(a,b) ((a >> b) | (a << (32-b)))
 
-#define CH(x,y,z) ((x & y) ^ (~x & z))
-#define MAJ(x,y,z) ((x & y) ^ (x & z) ^ (y & z))
-#define EP0(x) (ROTRIGHT(x,2) ^ ROTRIGHT(x,13) ^ ROTRIGHT(x,22))
-#define EP1(x) (ROTRIGHT(x,6) ^ ROTRIGHT(x,11) ^ ROTRIGHT(x,25))
-#define SIG0(x) (ROTRIGHT(x,7) ^ ROTRIGHT(x,18) ^ (x >> 3))
-#define SIG1(x) (ROTRIGHT(x,17) ^ ROTRIGHT(x,19) ^ (x >> 10))
+#define CH(x,y,z)     ((x & y) ^ (~x & z))
+#define MAJ(x,y,z)    ((x & y) ^ (x & z) ^ (y & z))
+#define EP0(x)        (ROTRIGHT(x,2) ^ ROTRIGHT(x,13) ^ ROTRIGHT(x,22))
+#define EP1(x)        (ROTRIGHT(x,6) ^ ROTRIGHT(x,11) ^ ROTRIGHT(x,25))
+#define SIG0(x)       (ROTRIGHT(x,7) ^ ROTRIGHT(x,18) ^ (x >> 3))
+#define SIG1(x)       (ROTRIGHT(x,17) ^ ROTRIGHT(x,19) ^ (x >> 10))
 
 static const WORD k[64] = {
     0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,
@@ -58,6 +70,7 @@ static const WORD k[64] = {
     0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
 };
 
+// SHA-256 core transformation
 void sha256_transform(SHA256_CTX *ctx, const BYTE data[]) {
     WORD a,b,c,d,e,f,g,h,i,j,t1,t2,m[64];
 
@@ -98,6 +111,7 @@ void sha256_transform(SHA256_CTX *ctx, const BYTE data[]) {
     ctx->state[7] += h;
 }
 
+// Initialize SHA-256 context
 void sha256_init(SHA256_CTX *ctx) {
     ctx->datalen = 0;
     ctx->bitlen = 0;
@@ -111,6 +125,7 @@ void sha256_init(SHA256_CTX *ctx) {
     ctx->state[7] = 0x5be0cd19;
 }
 
+// Update SHA-256 context with input data
 void sha256_update(SHA256_CTX *ctx, const BYTE data[], size_t len) {
     for (size_t i = 0; i < len; ++i) {
         ctx->data[ctx->datalen] = data[i];
@@ -123,6 +138,7 @@ void sha256_update(SHA256_CTX *ctx, const BYTE data[], size_t len) {
     }
 }
 
+// Finalize SHA-256 context and output hash
 void sha256_final(SHA256_CTX *ctx, BYTE hash[]) {
     int i = ctx->datalen;
 
@@ -161,6 +177,7 @@ void sha256_final(SHA256_CTX *ctx, BYTE hash[]) {
     }
 }
 
+// Utility function to hash a string using SHA-256
 string sha256(const string& input) {
     BYTE hash[SHA256_BLOCK_SIZE];
     SHA256_CTX ctx;
@@ -175,17 +192,19 @@ string sha256(const string& input) {
     return ss.str();
 }
 
-using namespace std;
+// ==========================
+//        Class Definitions
+// ==========================
 
-namespace fs = std::filesystem;
-
+// --------------------------
+// Account Class
+// --------------------------
 // The Account class represents a bank account with basic operations like deposit, withdraw, and transfer.
 class Account {
 private:
     string ownerName;
     int accountNumber;
     double balance;
-
 public:
     // Constructs an Account with the owner's name, account number, and initial deposit.
     Account(string name, int accNumber, double initialDeposit) {
@@ -199,8 +218,7 @@ public:
         if (amount > 0) {
             balance += amount;
             cout << "Deposited $" << amount << " to account " << accountNumber << endl;
-        }
-        else {
+        } else {
             cout << "Invalid deposit amount." << endl;
         }
     }
@@ -209,11 +227,9 @@ public:
     void withdraw(double amount) {
         if (amount <= 0) {
             cout << "Invalid withdrawal amount." << endl;
-        }
-        else if (amount > balance) {
+        } else if (amount > balance) {
             cout << "Insufficient funds in account " << accountNumber << "." << endl;
-        }
-        else {
+        } else {
             balance -= amount;
             cout << "Withdrew $" << amount << " from account " << accountNumber << endl;
         }
@@ -223,98 +239,88 @@ public:
     void transferTo(Account& other, double amount) {
         if (amount <= 0) {
             cout << "Invalid transfer amount." << endl;
-        }
-        else if (amount > balance) {
+        } else if (amount > balance) {
             cout << "Insufficient funds in account " << accountNumber << " for transfer." << endl;
-        }
-        else {
+        } else {
             balance -= amount;
             other.balance += amount;
             cout << "Transferred $" << amount << " from account " << accountNumber
-                << " to account " << other.accountNumber << "." << endl;
+                 << " to account " << other.accountNumber << "." << endl;
         }
     }
 
     // Returns the account number.
-    int getAccountNumber() const {
-        return accountNumber;
-    }
-
+    int getAccountNumber() const { return accountNumber; }
     // Returns the owner's name.
-    string getOwnerName() const {
-        return ownerName;
-    }
-
+    string getOwnerName() const { return ownerName; }
     // Returns the current balance.
-    double getBalance() const {
-        return balance;
-    }
-
+    double getBalance() const { return balance; }
     // Displays account details.
     void display() const {
         cout << "Account #" << accountNumber << " | Owner: " << ownerName << " | Balance: $" << balance << endl;
     }
 };
 
+// --------------------------
+// User Class (base)
+// --------------------------
 // The User class is a base class for customers and employees, storing username and password.
 class User {
 private:
     string username;
     string password;
-
 public:
     // Constructs a User with a username and password (hashes the password).
-    User(string uname, string pword) : username(uname), password(sha256(pword)) {}
-
+    User(string uname, string pword)
+        : username(uname), password(sha256(pword)) {}
     // Constructs a User with a username and a password, with option to specify if password is already hashed.
-    User(string uname, string pword, bool isHashed) : username(uname) {
+    User(string uname, string pword, bool isHashed)
+        : username(uname) {
         password = isHashed ? pword : sha256(pword);
     }
-
     // Returns the username.
-    string getUsername() const {
-        return username;
-    }
-
+    string getUsername() const { return username; }
     // Checks if the given password matches the user's password (hashes input before comparison).
     bool checkPassword(const string& input) const {
         return sha256(input) == password;
     }
-
     // Returns the hashed password.
-    string getPassword() const {
-        return password;
-    }
-
+    string getPassword() const { return password; }
     // Virtual destructor for base class.
     virtual ~User() {}
 };
 
+// --------------------------
+// Customer Class
+// --------------------------
 // The Customer class represents a bank customer and associates them with an account.
 class Customer : public User {
 private:
     string accountHash;
-
 public:
     // Constructs a Customer with username, password, and account hash.
     Customer(string uname, string pword, string accHash, bool isHashed = false)
         : User(uname, pword, isHashed), accountHash(accHash) {}
-
     // Returns the associated account hash.
     string getAccountHash() const { return accountHash; }
 };
 
+// --------------------------
+// Employee Class
+// --------------------------
 // The Employee class represents a bank employee with access to view all accounts.
 class Employee : public User {
 public:
     // Constructs an Employee with username and password.
     Employee(string uname, string pword, bool isHashed = false)
         : User(uname, pword, isHashed) {}
-
     // Allows employee to view all accounts in the bank.
     void viewAllAccounts(class Bank& bank) const;
 };
 
+// --------------------------
+// Bank Class
+// --------------------------
 // The Bank class manages accounts, customers, and employees, and handles persistence.
 class Bank {
 private:
@@ -322,28 +328,23 @@ private:
     int nextAccountNumber = 1000;
     vector<Customer> customers;
     vector<Employee> employees;
-
 public:
     // Adds a customer to the bank.
     void addCustomer(const Customer& customer) {
         customers.push_back(customer);
     }
-
     // Adds an employee to the bank.
     void addEmployee(const Employee& employee) {
         employees.push_back(employee);
     }
-
     // Returns a const reference to the list of customers.
     const vector<Customer>& getCustomers() const {
         return customers;
     }
-
     // Returns a const reference to the list of employees.
     const vector<Employee>& getEmployees() const {
         return employees;
     }
-
     // Adds a new account with the given name and initial deposit, returns new account number.
     int addAccount(const string& name, double initialDeposit) {
         int newAccountNumber = nextAccountNumber++;
@@ -351,7 +352,6 @@ public:
         account.push_back(newAccount);
         return newAccountNumber;
     }
-
     // Finds and returns a pointer to an account by account number, or nullptr if not found.
     Account* findAccount(int accountNum) {
         for (int i = 0; i < account.size(); i++) {
@@ -362,19 +362,16 @@ public:
         cout << "NO ACCOUNT FOUND" << endl;
         return nullptr;
     }
-
     // Displays all accounts in the bank.
     void showAllAccounts() const {
         for (int i = 0; i < account.size(); i++) {
             account[i].display();
         }
     }
-
     // Returns a const reference to all accounts.
     const vector<Account>& getAllAccounts() const {
         return account;
     }
-
     // Saves account data to a file in JSON format.
     void saveToFile(const string& filename) {
         fs::create_directories("vaults");
@@ -390,7 +387,6 @@ public:
         file << j.dump(4);
         file.close();
     }
-
     // Loads account data from a file in JSON format.
     void loadFromFile(const string& filename) {
         ifstream file(filename);
@@ -409,7 +405,6 @@ public:
             }
         }
     }
-
     // Loads customers and employees from their respective files.
     void loadUsersFromFile(const string& customerFile, const string& employeeFile) {
         // Load customers
@@ -423,12 +418,10 @@ public:
                 string password = item.at("password");
                 string accNumHash = decrypt(item.at("accountNumber"), vaultPassword);
                 customers.emplace_back(username, password, accNumHash, true);
-
                 // Create a placeholder account entry for login hash matching
                 int placeholderNumber = nextAccountNumber++;
                 Account placeholder("Encrypted", placeholderNumber, 0.0);
                 account.push_back(placeholder);
-
                 // Overwrite placeholder account hash to match customer hash
                 if (sha256(to_string(placeholderNumber)) != accNumHash) {
                     account.pop_back(); // remove mismatch
@@ -442,7 +435,6 @@ public:
                 }
             }
         }
-
         // Load employees
         ifstream eFile(employeeFile);
         if (eFile.is_open()) {
@@ -456,7 +448,6 @@ public:
             }
         }
     }
-
     // Saves customers and employees to their respective files.
     void saveUsersToFile(const string& customerFile, const string& employeeFile) {
         nlohmann::json cj;
@@ -470,7 +461,6 @@ public:
         ofstream cOut(customerFile);
         cOut << cj.dump(4);
         cOut.close();
-
         nlohmann::json ej;
         for (const auto& e : employees) {
             ej.push_back({
@@ -489,6 +479,10 @@ inline void Employee::viewAllAccounts(Bank& bank) const {
     bank.showAllAccounts();
 }
 
+// ==========================================================
+//                        MAIN FUNCTION
+// ==========================================================
+// Entry point for Cherrington Bank simulation.
 int main() {
     Bank account;
     account.loadFromFile("vaults/bank.json");
